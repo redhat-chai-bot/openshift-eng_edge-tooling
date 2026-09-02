@@ -2,12 +2,22 @@
 
 Authenticates via Kerberos/GSSAPI (requires a valid kinit session).
 All requests go through the internal Red Hat VPN.
+
+The requests-gssapi package is optional: when unavailable the module
+still loads, but functions that require Kerberos will return None and
+log a clear error.
 """
 
 import logging
 import re
 
 logger = logging.getLogger(__name__)
+
+try:
+    from requests_gssapi import HTTPSPNEGOAuth
+    _KERBEROS_AVAILABLE = True
+except ImportError:
+    _KERBEROS_AVAILABLE = False
 
 ET_BASE_URL = "https://errata.devel.redhat.com"
 ET_API_URL = f"{ET_BASE_URL}/api/v1"
@@ -16,12 +26,20 @@ _session = None
 
 
 def _get_session():
-    """Return a requests session with GSSAPI auth, creating it on first call."""
+    """Return a requests session with GSSAPI auth, creating it on first call.
+
+    Returns None if requests-gssapi is not installed.
+    """
     global _session
     if _session is None:
+        if not _KERBEROS_AVAILABLE:
+            logger.error(
+                "requests-gssapi not installed — Errata Tool requires "
+                "Kerberos auth (pip install requests-gssapi)"
+            )
+            return None
         import requests  # noqa: PLC0415
         import urllib3  # noqa: PLC0415
-        from requests_gssapi import HTTPSPNEGOAuth  # noqa: PLC0415
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         _session = requests.Session()
         _session.auth = HTTPSPNEGOAuth()
@@ -38,6 +56,8 @@ def _et_get(path, **kwargs):
     """
     import requests  # noqa: PLC0415
     session = _get_session()
+    if session is None:
+        return None
     url = f"{ET_API_URL}/{path.lstrip('/')}"
     try:
         resp = session.get(url, timeout=30, **kwargs)
@@ -68,6 +88,8 @@ def check_auth():
     """
     import requests  # noqa: PLC0415
     session = _get_session()
+    if session is None:
+        return False
     try:
         resp = session.get(ET_BASE_URL, timeout=10,
                            headers={"Accept": "text/html"})

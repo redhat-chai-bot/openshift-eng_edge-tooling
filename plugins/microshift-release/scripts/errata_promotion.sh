@@ -16,6 +16,9 @@ fi
 MARKER="${ENVDIR}/.deps-installed"
 if [[ ! -f "${MARKER}" ]] || [[ "${SCRIPTDIR}/requirements.txt" -nt "${MARKER}" ]]; then
     "${ENVDIR}/bin/python3" -m pip install -q -r "${SCRIPTDIR}/requirements.txt" >&2
+    # Optional: Kerberos auth (needs krb5-devel headers to build).
+    "${ENVDIR}/bin/python3" -m pip install -q 'requests-gssapi>=1.3.0,<2' 2>/dev/null \
+        || echo "Note: requests-gssapi not installed (Kerberos auth unavailable)" >&2
     touch "${MARKER}"
 fi
 
