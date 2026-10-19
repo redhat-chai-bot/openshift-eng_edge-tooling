@@ -25,6 +25,14 @@ Automate MicroShift Release Testing Activities — from pre-release evaluation t
 
 ### Request ART to create a new Z-Stream
 
+To automate the ART request and QE tracking ticket setup below, use [request_art_builds.sh](scripts/request_art_builds.sh). It creates or reuses the tickets, links them, and sends the initial Slack notification. With `curl` and `jq` installed and `JIRA_USER_EMAIL`, `JIRA_API_TOKEN`, and `SLACK_WEBHOOK_URL` set, run from the repository root:
+
+```bash
+plugins/microshift-release/scripts/request_art_builds.sh X.Y.Z ART_DUE_DATE RELEASE_DATE --reason "Reason for requesting builds"
+```
+
+Use `YYYY-MM-DD` for both dates, with the ART due date on or before the release date. Add `--dry-run` to run preflight checks without writing, or `--skip-slack` to prepare the notification for manual posting instead of requiring a webhook.
+
 For every Z-Stream marked as `ASK ART` in Pre-Check (Phase 0) output:
 
  1. Clone this [template ART Jira ticket](https://redhat.atlassian.net/browse/ART-11857) and replace the target version in the title
